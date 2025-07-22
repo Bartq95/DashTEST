@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mercedes dashboard</title>
+  <style>
+    :root {
+      /* Domyślne kolory dla motywu nocnego */
+      --color-bg: #111;
+      --color-text: #111;
+      --color-plate: #deb99f;
+      --color-border: #fcd8b4;
+      --color-title: #111;
+      --color-needle: #f7f9ff;
+      --color-needle-end: #f7f9ff;
+      --color-needle-circle: #000;
+      --color-highlight: rgb(237, 2, 2);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        /* Kolory dla motywu dziennego */
+        --color-bg: #DDD;
+        --color-text: #111;
+        --color-plate: #ffffff;
+        --color-border: #000000;
+        --color-title: #111;
+        --color-needle: #f7f9ff;
+        --color-needle-end: #f7f9ff;
+        --color-needle-circle: #000;
+        --color-highlight: rgba(0,123,255,0.4);
+      }
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--color-bg);
+      font-family: sans-serif;
+      color: var(--color-text);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 50vh);
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .cell {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0vw;
+    }
+
+    canvas {
+      width: auto;
+      height: auto;
+      max-height: 97%;
+      max-width: 97%;
+      transition: filter 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid">
+	
+	<div class="cell" style="position: relative;">
+	  <!-- Ikona SVG jako nakładka -->
+	  <img src="ect-icon.svg" alt="Temp płynu"
+		   style="position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%); height: 3.5vw; z-index: 100; pointer-events: none;" />
+	  <!-- Wskaźnik -->
+	<canvas id="gauge-coolant"></canvas></div>
+  	
+	<div class="cell" style="position: relative;">
+	  <!-- Ikona SVG jako nakładka -->
+	  <img src="oil-temp-icon.svg" alt="Temperatura oleju"
+		   style="position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%); height: 3vw; z-index: 100; pointer-events: none;" />
+	  <!-- Wskaźnik -->
+	  <canvas id="gauge-oil-temp"></canvas></div>
+	  
+	<div class="cell" style="position: relative;">
+	  <!-- Ikona SVG jako nakładka -->
+	  <img src="oil-pressure-icon.svg" alt="Ciśnienie oleju"
+		   style="position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%); height: 5vw; z-index: 100; pointer-events: none;" />
+	  <!-- Wskaźnik -->
+	<canvas id="gauge-oil-press"></canvas></div>
+		
+  	<div class="cell" style="position: relative;">
+	  <!-- Ikona SVG jako nakładka -->
+	  <img src="atf-icon.svg" alt="Temp ATF"
+		   style="position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%); height: 3.5vw; z-index: 100; pointer-events: none;" />
+	  <!-- Wskaźnik -->
+	<canvas id="gauge-atf-temp"></canvas></div>
+		
+	<div class="cell" style="position: relative;">
+	  <!-- Ikona SVG jako nakładka -->
+	  <img src="boost-icon.svg" alt="Turbo"
+		   style="position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%); height: 3.5vw; z-index: 100; pointer-events: none;" />
+	  <!-- Wskaźnik -->
+	<canvas id="gauge-boost"></canvas></div>
+		
+	<div class="cell" style="position: relative;">
+	  <!-- Ikona SVG jako nakładka -->
+	  <img src="battery-icon.svg" alt="Napięcie ładowania"
+		   style="position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%); height: 3.5vw; z-index: 100; pointer-events: none;" />
+	  <!-- Wskaźnik -->
+	<canvas id="gauge-voltage"></canvas></div>
+	
+  </div>
+
+  <script src="gauge.min.js"></script>
+  <script>
+    // Funkcja do aktualizacji motywu wskaźników
+    function updateGaugesTheme() {
+      const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches;
+      
+      const theme = {
+        colorPlate: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-plate').trim(),
+        colorBorderOuter: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-border').trim(),
+        colorBorderOuterEnd: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-border').trim(),
+        colorTitle: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-title').trim(),
+        colorUnits: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-title').trim(),
+        colorNumbers: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-title').trim(),
+        colorBorderShadow: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-border').trim(),
+        colorNeedle: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-needle').trim(),
+        colorNeedleEnd: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-needle-end').trim(),
+        colorNeedleCircleOuter: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-needle-circle').trim(),
+        colorNeedleCircleInner: getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-needle-circle').trim(),
+      };
+
+      // Aktualizuj wszystkie wskaźniki
+      for (const gauge of Object.values(gauges)) {
+        gauge.update(theme);
+        gauge.draw();
+      }
+    }
+
+    // Podstawowa konfiguracja wskaźników
+    const gaugeDefaults = {
+      borders: false,
+      borderOuterWidth: 4,
+      needleType: "triangle",
+      needleStart: "0",
+      needleEnd: "90",
+      needleWidth: 3,
+      borderShadowWidth: 12,
+      borderShadowBlur: 14,
+      borderShadowOffsetX: 0,
+      borderShadowOffsetY: 0,
+      valueBox: false,
+      animationDuration: 150,
+      animationRule: "linear",
+      animationTarget: "needle",
+      needleCircleInner: true,
+      needleCircleOuter: true,
+      colorNeedleCircleOuter:"#4a4a4a",
+      colorNeedleCircleOuterEnd:"#262626",
+      colorNeedleCircleInner:"#4a4a4a",
+      colorNeedleCircleInnerEnd:"#4a4a4a",
+      fontNumbersSize: 33,
+      fontTitleSize: 27,
+      fontUnitsSize: 30,
+	  needleBorderSize: 4,
+    };
+
+    const gauges = {
+      "gauge-oil-temp": new RadialGauge(Object.assign({}, gaugeDefaults, {
+        renderTo: "gauge-oil-temp",
+        title: "Oil temp.",
+        units: "°C",
+        minValue: -40,
+        maxValue: 140,
+        majorTicks: ["-40", "-20", "0", "20", "40", "60", "80", "100", "120", "140"],
+        highlights: [
+          { from: 115, to: 140, color: "rgba(255,0,0,0.4)" },
+          { from: -40, to: 0, color: "rgba(0,100,255,0.3)" }
+        ],
+      })),
+      "gauge-oil-press": new RadialGauge(Object.assign({}, gaugeDefaults, {
+        renderTo: "gauge-oil-press",
+        title: "Oil pressure",
+        units: "bar",
+        minValue: 0,
+        maxValue: 6,
+        majorTicks: ["0", "1", "2", "3", "4", "5", "6"],
+        highlights: [{ from: 0, to: 0.7, color: "rgba(255,0,0,0.4)" }],
+      })),
+      "gauge-voltage": new RadialGauge(Object.assign({}, gaugeDefaults, {
+        renderTo: "gauge-voltage",
+        title: "Battery",
+        units: "V",
+        minValue: 11,
+        maxValue: 15,
+        majorTicks: ["11", "12", "13", "14", "15"],
+        highlights: [{ from: 13.5, to: 14.4, color: "rgba(0,150,0,0.4)" },{ from: 14.4, to: 15, color: "rgba(255,0,0,0.4)" }],
+      })),
+      "gauge-atf-temp": new RadialGauge(Object.assign({}, gaugeDefaults, {
+        renderTo: "gauge-atf-temp",
+        title: "ATF temp.",
+        units: "°C",
+        minValue: -40,
+        maxValue: 120,
+        majorTicks: ["-40", "-20", "0", "20", "40", "60", "80", "100", "120"],
+        highlights: [
+          { from: 80, to: 120, color: "rgba(255,0,0,0.4)" },
+          { from: -40, to: 0, color: "rgba(0,100,255,0.3)" }
+        ],
+      })),
+      "gauge-boost": new RadialGauge(Object.assign({}, gaugeDefaults, {
+        renderTo: "gauge-boost",
+        title: "Boost",
+        units: "bar",
+        minValue: 0,
+        maxValue: 2,
+        majorTicks: ["0", "0.5", "1", "1.5", "2"],
+        highlights: [{ from: 1.5, to: 2, color: "rgba(255,0,0,0.4)" }],
+      })),
+      "gauge-coolant": new RadialGauge(Object.assign({}, gaugeDefaults, {
+        renderTo: "gauge-coolant",
+        title: "Coolant temp.",
+        units: "°C",
+        minValue: -40,
+        maxValue: 140,
+        majorTicks: ["-40", "-20", "0", "20", "40", "60", "80", "100", "120","140"],
+        highlights: [
+          { from: 110, to: 140, color: "rgba(255,0,0,0.4)" },
+          { from: -40, to: 0, color: "rgba(0,100,255,0.3)" }
+        ],
+      })),
+    };
+
+    // Inicjalizacja i ustawienie motywu
+    window.addEventListener('DOMContentLoaded', () => {
+      // Zainicjuj wszystkie wskaźniki
+      for (const g of Object.values(gauges)) {
+        g.draw();
+      }
+      
+      // Ustaw początkowy motyw
+      updateGaugesTheme();
+      
+      // Obserwuj zmiany motywu
+      window.matchMedia('(prefers-color-scheme: light)')
+        .addEventListener('change', updateGaugesTheme);
+    });
+
+    // Symulacja danych
+    setInterval(() => {
+      gauges["gauge-oil-temp"].value = 70 + Math.random() * 30;
+      gauges["gauge-oil-press"].value = 2 + Math.random() * 2;
+      gauges["gauge-voltage"].value = 12.5 + Math.random() * 0.5;
+      gauges["gauge-atf-temp"].value = 65 + Math.random() * 25;
+      gauges["gauge-boost"].value = -0.5 + Math.random() * 2.5;
+      gauges["gauge-coolant"].value = 80 + Math.random() * 20;
+    }, 400);
+  </script>
+</body>
+</html>
